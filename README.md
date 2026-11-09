@@ -7,7 +7,6 @@ Put a rule behind an attribute so it cannot be set to nonsense, and let one clas
 - [AI Use on This Assignment](#ai-use-on-this-assignment)
 - [Setup](#setup)
 - [Before You Start](#before-you-start)
-  - [Ideas to look for](#ideas-to-look-for)
   - [Syntax to recognize](#syntax-to-recognize)
   - [Look these up yourself](#look-these-up-yourself)
 - [From Scratch](#from-scratch)
@@ -92,7 +91,8 @@ This assignment has three sections:
 2. Modify
 3. Debug
 
-### Ideas to look for
+<details>
+<summary><strong>Ideas to look for</strong> — the ideas behind the questions, if you want them up front</summary>
 
 Each question depends on one or more of these ideas. Part of the work is
 deciding which.
@@ -110,6 +110,8 @@ deciding which.
 | Overriding means defining a method the parent already has. `super().method()` calls the parent's version, so the subclass can extend an answer instead of replacing it. | 2.4 |
 | Inheritance is for "is a". Composition — holding another object as an attribute — is for "has a". A ride is not a kind of bike, so `Ride` holds a `Bike`. | 2.4 |
 | Two subclasses that differ only by a stored value should be one class that takes that value as an argument. A subclass is for different behavior, not for different data. | 2.4 |
+
+</details>
 
 ### Syntax to recognize
 
@@ -146,7 +148,9 @@ class ElectricBike(Bike):                # inherit from Bike
 - `isinstance()`. The tests use it to check your inheritance is real, and two
   questions talk about it. Read about it on
   [W3Schools](https://www.w3schools.com/python/ref_func_isinstance.asp).
-- `round()`. One question asks for a price rounded to two decimal places.
+- `round()`. One question asks for a price rounded to two decimal places. Read
+  about it on
+  [W3Schools](https://www.w3schools.com/python/ref_func_round.asp).
 
 ## From Scratch
 
