@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Grade against the assignment's tests, not against whatever is in this
+      # repo now. A student who edits tests/ to make a failing test pass would
+      # otherwise score 100%, because pytest only ever sees the edited copy.
+      # Restoring them here means editing tests/ changes nothing about the
+      # score, so there is no reason to try.
+      #
+      # TEMPLATE is rewritten per assignment when the template repo is made.
+      - name: Restore the assignment's tests
+        env:
+          TEMPLATE: The-Marcy-Lab-School/swe-2-2-properties-inheritance-python
+        run: |
+          git clone --depth 1 --quiet "https://github.com/$TEMPLATE.git" /tmp/canonical
+          rm -rf tests
+          cp -r /tmp/canonical/tests tests
+
+      - run: pip install -r requirements.txt
+
+      # A failing test must never fail the job. Students are expected to push
+      # work in progress, and a red X on every push teaches them to ignore it.
+      - name: Run tests
+        run: python3 -m pytest --junitxml=results.xml
+        continue-on-error: true
+
+      - name: Publish score
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: python3 .github/report.py results.xml
