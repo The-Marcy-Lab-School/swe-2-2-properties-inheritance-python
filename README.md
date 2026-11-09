@@ -3,8 +3,9 @@
 Covers session 2.3, Properties: Non-Public Attributes, `@property`, and Class
 Attributes, and session 2.4, Inheritance and Attribute Lookup.
 
-**The questions are not final yet.** The bank is under review and the chosen
-questions, their stubs, and `tests/` arrive once the selection is made.
+**The questions are not final yet.** The candidates are in PR #1 for review.
+The chosen questions, their stubs, and `tests/` are written once the selection
+is made.
 
 ## Setup
 
