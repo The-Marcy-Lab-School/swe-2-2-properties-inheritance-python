@@ -67,11 +67,14 @@ def test_station_setter_accepts_a_valid_capacity():
 
 
 def test_station_setter_refuses_a_capacity_below_one():
-    """Station - assigning 0 or less raises ValueError"""
+    """Station - assigning 0 or less raises ValueError with a message naming the rule"""
     station = Station("Grand Army", 20)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as refusal:
         station.capacity = 0
+    assert str(refusal.value).strip(), \
+        "Give ValueError a message saying what the rule is, not a bare raise."
+
     with pytest.raises(ValueError):
         station.capacity = -4
 
