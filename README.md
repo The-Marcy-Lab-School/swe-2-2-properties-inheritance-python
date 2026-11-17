@@ -14,13 +14,14 @@ Put a rule behind an attribute so it cannot be set to nonsense, and let one clas
   - [Question 2: `Member`](#question-2-member)
   - [Question 3: `ClassicBike` and `ElectricBike`](#question-3-classicbike-and-electricbike)
   - [Question 4: `Ride`](#question-4-ride)
+  - [Question 5: Testing Each Kind of Bike](#question-5-testing-each-kind-of-bike)
 - [Modify](#modify)
-  - [Question 5: `Station.capacity`](#question-5-stationcapacity)
-  - [Question 6: `BoroughBike`](#question-6-boroughbike)
-  - [Question 7: `Ride`](#question-7-ride)
+  - [Question 6: `Station.capacity`](#question-6-stationcapacity)
+  - [Question 7: `BoroughBike`](#question-7-boroughbike)
+  - [Question 8: `Ride`](#question-8-ride)
 - [Debug](#debug)
-  - [Question 8: `Station.capacity`](#question-8-stationcapacity)
-  - [Question 9: `ElectricBike`](#question-9-electricbike)
+  - [Question 9: `Station.capacity`](#question-9-stationcapacity)
+  - [Question 10: `ElectricBike`](#question-10-electricbike)
 - [Submitting](#submitting)
 - [Good luck!](#good-luck)
 
@@ -165,6 +166,11 @@ class Concert(Event):                    # Concert inherits from Event
 
 Write these functions and classes in `src/from_scratch.py`.
 
+The examples pass every number and every `True` or `False` by keyword, as in
+`Station("Grand Army", capacity=20)`, so that each value says what it is. Give
+each `__init__` parameter the name the examples use, or those calls will not
+run.
+
 ### Question 1: `Station`
 
 **`Bike` is already written for you** in `src/from_scratch.py`.
@@ -187,11 +193,11 @@ start an empty list of bikes called `self.bikes`.
 | `free_docks()`    | How many docks are still empty                                                                             | The number |
 
 ```python
-station = Station("Grand Army", 20)
+station = Station("Grand Army", capacity=20)
 station.capacity                 # 20 — no parentheses, it is a property
 station.free_docks()             # 20
 
-station.dock(Bike("A1", "Grand Army", False))
+station.dock(Bike("A1", "Grand Army", needs_repair=False))
 station.free_docks()             # 19
 
 station.capacity = 25            # allowed, this goes through the setter
@@ -233,7 +239,7 @@ Member.BORROW_LIMIT              # 3 — read off the class, no instance needed
 
 ana = Member("Ana")
 ana.can_borrow()                 # True
-ana.borrow(Bike("A1", "Grand Army", False))
+ana.borrow(Bike("A1", "Grand Army", needs_repair=False))
 len(ana.bikes)                   # 1
 
 Member("Ben").can_borrow()       # True — this member has an empty list of their own
@@ -264,12 +270,12 @@ on.
 | `ElectricBike` | serial, station, repair flag, **battery_range** | The base rate plus `4.50` |
 
 ```python
-classic = ClassicBike("A1", "Grand Army", False)
+classic = ClassicBike("A1", "Grand Army", needs_repair=False)
 classic.serial                   # "A1" — inherited, you did not write it
 classic.is_rentable()            # True — inherited too
 classic.hourly_rate()            # 4.0
 
-electric = ElectricBike("E9", "Borough Hall", False, 24)
+electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 electric.serial                  # "E9" — the parent stored this
 electric.battery_range           # 24 miles — only an electric bike has one
 electric.hourly_rate()           # 7.5
@@ -308,7 +314,7 @@ time it is asked, never by storing it.
 | `cost` | A `@property` that works out the price from the bike's rate and the minutes, rounded to 2 decimal places | The number |
 
 ```python
-ride = Ride(Bike("A1", "Grand Army", False), 30)
+ride = Ride(Bike("A1", "Grand Army", needs_repair=False), minutes=30)
 ride.cost                        # 1.5 — half an hour at $3.00 an hour
 
 ride.minutes = 60
@@ -382,7 +388,7 @@ The class is in `src/modify.py`. When you are done:
   do now.
 
 ```python
-station = Station("Grand Army", 20)
+station = Station("Grand Army", capacity=20)
 station.capacity                 # 20 — now going through the property
 station.free_docks()             # 20 — this method did not change
 station.__dict__                 # {'name': 'Grand Army', '_capacity': 20, 'bikes': []}
@@ -411,12 +417,12 @@ The borough is a value each bike holds. Replace both classes with the single
 the borough as an argument named `borough`.
 
 ```python
-bike = BoroughBike("A1", "Grand Army", False, "Brooklyn")
+bike = BoroughBike("A1", "Grand Army", needs_repair=False, borough="Brooklyn")
 bike.borough                     # "Brooklyn"
 bike.serial                      # "A1" — still inherited from Bike
 isinstance(bike, Bike)           # True
 
-BoroughBike("M4", "Union Square", False, "Manhattan").borough
+BoroughBike("M4", "Union Square", needs_repair=False, borough="Manhattan").borough
 # "Manhattan" — one class covers both, and the next borough needs no new class
 ```
 
@@ -444,8 +450,8 @@ A ride is not a kind of bike. A ride **has** a bike. Change `Ride` in
 When you are done, `Ride` takes a `Bike` object and a number of minutes:
 
 ```python
-bike = Bike("A1", "Grand Army", False)
-ride = Ride(bike, 30)
+bike = Bike("A1", "Grand Army", needs_repair=False)
+ride = Ride(bike, minutes=30)
 
 ride.bike is bike                # True — the same object, not a copy
 ride.minutes                     # 30
@@ -453,14 +459,13 @@ ride.rate()                      # 3.0 — asked of the bike it holds
 isinstance(ride, Bike)           # False — a ride is not a bike
 ```
 
-`rate()` still has to work, but it now reaches the bike it holds and asks it:
-`self.bike.hourly_rate()`. The ride no longer stores the serial, the station or
-the repair flag itself. Code that needs the serial reads it from the bike, as
-`ride.bike.serial`.
+**Notes**:
 
-The test for this one is `isinstance(ride, Bike)` being `False`. That is the
-whole difference between "is a" and "has a", and it is the question to ask
-yourself every time inheritance looks convenient.
+- `rate()` still has to work, but it now reaches the bike it holds and asks it: `self.bike.hourly_rate()`.
+- The ride no longer stores the serial, the station or the repair flag itself. Code that needs the serial reads it from the bike.
+- The test for this one is `isinstance(ride, Bike)` being `False`. That is the
+  whole difference between "is a" and "has a", and it is the question to ask
+  yourself every time inheritance looks convenient.
 
 ## Debug
 
@@ -473,7 +478,7 @@ message is right, and the rule is in the right place. Setting a capacity still
 fails:
 
 ```python
-station = Station("Grand Army", 20)
+station = Station("Grand Army", capacity=20)
 station.capacity = 25
 # RecursionError: maximum recursion depth exceeded
 ```
@@ -486,7 +491,7 @@ Find the line the traceback repeats, and ask why running it would run it again.
 Fix `Station` in `src/debug.py` so this works:
 
 ```python
-station = Station("Grand Army", 20)
+station = Station("Grand Army", capacity=20)
 station.capacity = 25
 station.capacity                 # 25
 
@@ -509,7 +514,7 @@ easiest error in Python to place.
 of the three attributes `Bike` is supposed to store does not:
 
 ```python
-electric = ElectricBike("E9", "Borough Hall", False, 24)
+electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 electric.battery_range           # 24 — this one works
 electric.hourly_rate()           # 7.5 — this works too
 electric.serial
@@ -520,7 +525,7 @@ The class inherits from `Bike`, so why is the serial missing? Fix
 `ElectricBike` in `src/debug.py`.
 
 ```python
-electric = ElectricBike("E9", "Borough Hall", False, 24)
+electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 electric.serial                  # "E9"
 electric.station                 # "Borough Hall"
 electric.is_rentable()           # True
