@@ -4,8 +4,9 @@ Writes two things from one source:
 
   1. A table appended to the Actions job summary, which is what the student
      reads after a push.
-  2. A commit status under the context "marcy/score", which is what the
-     gradebook collector reads back through the API.
+  2. A commit status under the context "marcy/score", carrying the same counts.
+     Nothing reads it today. It is kept so that a future gradebook collector
+     can pick the scores up through the API without a change here.
 
 Neither one says whether the assignment is complete. Assignments are graded
 against a rubric by an instructor, and a second message about completion here
@@ -93,7 +94,7 @@ def main(xml_path):
 
     # The check stays neutral. A student pushing unfinished work is doing the
     # right thing, so this never renders as a pass or a failure. The counts are
-    # here because the gradebook reads this description.
+    # here so a future collector can read them off the description.
     passed = sum(p for n, (p, _) in suites.items() if n not in unscored)
     total = sum(t for n, (_, t) in suites.items() if n not in unscored)
     set_status("success", f"{passed}/{total} tests passing")
