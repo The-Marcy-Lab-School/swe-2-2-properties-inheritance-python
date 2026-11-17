@@ -2,7 +2,7 @@
 
 Put a rule behind an attribute so it cannot be set to nonsense, and let one class build on another.
 
-**Practicing:** non-public attributes, `@property`, validating setters, class attributes, inheritance, `super()`, overriding a method, `__dict__`, testing each subclass
+**Practicing:** non-public attributes, `@property`, validating setters, class attributes, inheritance, `super()`, overriding a method, `__dict__`, testing a refusal, testing each subclass
 
 - [AI Use on This Assignment](#ai-use-on-this-assignment)
 - [Setup](#setup)
@@ -15,13 +15,14 @@ Put a rule behind an attribute so it cannot be set to nonsense, and let one clas
   - [Question 3: `ClassicBike` and `ElectricBike`](#question-3-classicbike-and-electricbike)
   - [Question 4: `Ride`](#question-4-ride)
   - [Question 5: Testing Each Kind of Bike](#question-5-testing-each-kind-of-bike)
+  - [Question 6: Testing the Capacity Refusal](#question-6-testing-the-capacity-refusal)
 - [Modify](#modify)
-  - [Question 6: `Station.capacity`](#question-6-stationcapacity)
-  - [Question 7: `BoroughBike`](#question-7-boroughbike)
-  - [Question 8: `Ride`](#question-8-ride)
+  - [Question 7: `Station.capacity`](#question-7-stationcapacity)
+  - [Question 8: `BoroughBike`](#question-8-boroughbike)
+  - [Question 9: `Ride`](#question-9-ride)
 - [Debug](#debug)
-  - [Question 9: `Station.capacity`](#question-9-stationcapacity)
-  - [Question 10: `ElectricBike`](#question-10-electricbike)
+  - [Question 10: `Station.capacity`](#question-10-stationcapacity)
+  - [Question 11: `ElectricBike`](#question-11-electricbike)
 - [Submitting](#submitting)
 - [Good luck!](#good-luck)
 
@@ -105,6 +106,7 @@ deciding which.
 | A setter runs whenever anything assigns to that name on an instance, including code inside the setter itself. It is the one place a rule about the value belongs.                                                                 | 2.3    |
 | Raise `ValueError` to refuse a value, and raise it **before** storing anything, so a refused assignment leaves the old value exactly as it was.                                                                                   | 2.3    |
 | A property with a getter and no setter cannot be assigned to. That is how you make a value that is always computed and never stored.                                                                                              | 2.3    |
+| A refusal makes two promises, so it needs two tests: one that the wrong value raises `ValueError`, and one that the stored value is unchanged afterwards. A setter that stores before it checks keeps the first and breaks the second. | 2.3    |
 | A value assigned in the class body, written in capitals by convention, belongs to the class and is shared by every instance. Read it through the class name, so the value appears once.                                           | 2.4    |
 | A subclass inherits the parent's methods, so it can use them without rewriting them. Writing `class ElectricBike(Bike):` is the whole mechanism.                                                                                  | 2.4    |
 | Inheriting does **not** run the parent's `__init__`. A subclass that writes its own `__init__` replaces the parent's and must call `super().__init__(...)` itself.                                                                | 2.4    |
@@ -366,11 +368,11 @@ there to catch.
 
 A test makes one object, calls one method, and asserts the value you expect. Work the expected value out by hand before you write the assert: a classic bike charges the `3.00` base plus `1.00`. Then ask what inputs could change the answer:
 
-- **Below, at, and above a limit.** A rule with a cut-off, such as "a capacity of at least 1", is tested just below the cut-off (`0`), at it (`1`), and above it (`25`), because a mistake such as `<=` written for `<` only shows up at the cut-off. `hourly_rate()` has no cut-off, so this one applies to the refusals elsewhere in this assignment.
+- **Below, at, and above a limit.** A rule with a cut-off, such as "a capacity of at least 1", is tested just below the cut-off (`0`), at it (`1`), and above it (`25`), because a mistake such as `<=` written for `<` only shows up at the cut-off. `hourly_rate()` has no cut-off, so this one applies to the capacity refusal in Question 6.
 - **Empty or unusual values.** An empty list, a `0`, or a `True` where you would expect `False`. Should a bike that needs repair, or an electric bike with a `battery_range` of `0`, charge a different rate? If the answer is no, an assert on one of those bikes checks that the rate ignores them.
 - **The mistake the test is there to catch.** Picture a broken `hourly_rate()`: one that forgets the base rate, one that forgets the extra amount, or one that adds the wrong amount. Would your assert fail for each one? If it would still pass, it is not checking the price.
 
-For examples of the shape, open `tests/test_from_scratch.py` and read the tests for `Station` and `Member`. Each one builds an object, does one thing to it, and asserts a single expected result. `test_station_setter_refuses_a_capacity_below_one` and `test_station_keeps_its_old_capacity_after_a_refusal` also show how a test checks a value just past a cut-off. Copy their shape, not their contents: your tests are about the price.
+For examples of the shape, open `tests/test_from_scratch.py` and read the tests for `Station` and `Member`. Each one builds an object, does one thing to it, and asserts a single expected result. Copy their shape, not their contents: your tests are about the price.
 
 </details>
 
@@ -378,11 +380,30 @@ For examples of the shape, open `tests/test_from_scratch.py` and read the tests 
 > with the assignment's own tests when your work is graded, so anything you
 > write there is lost.
 
+### Question 6: Testing the Capacity Refusal
+
+Your `Station` from Question 1 refuses a capacity below 1, and that refusal makes two promises: the assignment raises a `ValueError`, and afterwards the station's capacity is the one it had before. A setter can keep the first promise and break the second. A setter that stores the new value before it checks it still raises the `ValueError`, but by then a station with 20 docks reports a capacity of 0, the same mistake that had the app reporting a station with eight bikes and no docks last week.
+
+Write two pytest tests that answer the questions "does a station refuse a capacity below 1?" and "does a refused capacity leave the old capacity in place?" Write them in `my_tests/test_capacity_refusal.py`, which already imports `pytest` and `Station` and names both tests for you.
+
+| Write                                                          | Does                                                                                                                                      |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_a_capacity_below_one_is_refused()`                       | Makes a `Station`, assigns it a capacity below 1, and uses `pytest.raises(ValueError)` to check that the assignment raises a `ValueError` |
+| `test_a_refused_capacity_leaves_the_stored_value_unchanged()` | Makes a `Station`, assigns it a capacity below 1 inside `pytest.raises(ValueError)`, and asserts that its capacity is the starting one    |
+
+Run your tests with:
+
+```sh
+pytest my_tests
+```
+
+Both tests should pass once your `Station` works. The assignment's own tests then check each of your tests twice: once against a station that works, where it must pass, and once against a station that breaks the promise it checks, where it must fail. The first test must fail against a station that accepts any capacity. The second test must fail against a station whose setter stores the value before it raises the `ValueError`, which is the mistake the first test cannot catch.
+
 ## Modify
 
 Change the code already in `src/modify.py`.
 
-### Question 6: `Station.capacity`
+### Question 7: `Station.capacity`
 
 `Station` stores its capacity in a public attribute, and three places in the
 class read `self.capacity`. A rule about the capacity, such as refusing a
@@ -420,7 +441,7 @@ same number, so none of it has to change. What changed is that reading
 Only two places change — the assignment in `__init__` and the new property. If
 you find yourself editing `dock`, stop and look again.
 
-### Question 7: `BoroughBike`
+### Question 8: `BoroughBike`
 
 `ManhattanBike` and `BrooklynBike` differ only in the string each stores. Each
 inherits from `Bike`, calls `super().__init__`, and stores its borough's name.
@@ -447,7 +468,7 @@ When it only holds a different value, a subclass means a new class for every
 value anyone ever adds — five boroughs today, and a new class the day Boro
 Bikes crosses into Yonkers.
 
-### Question 8: `Ride`
+### Question 9: `Ride`
 
 `Ride` inherits from `Bike`. It was written that way because a ride needed the
 bike's serial and rate, and inheriting got them. The result is that every ride
@@ -484,7 +505,7 @@ isinstance(ride, Bike)           # False — a ride is not a bike
 
 Fix the code in `src/debug.py`.
 
-### Question 9: `Station.capacity`
+### Question 10: `Station.capacity`
 
 `Station` validates its capacity correctly. The rule is right, the error
 message is right, and the rule is in the right place. Setting a capacity still
@@ -521,7 +542,7 @@ This bug is worth meeting here rather than in the project. Once you have seen
 the shape of it, a traceback that says `Previous line repeated` becomes the
 easiest error in Python to place.
 
-### Question 10: `ElectricBike`
+### Question 11: `ElectricBike`
 
 `ElectricBike` inherits from `Bike`, and its `hourly_rate()` works. Reading any
 of the three attributes `Bike` is supposed to store does not:

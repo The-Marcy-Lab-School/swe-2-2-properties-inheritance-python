@@ -343,3 +343,95 @@ def test_your_electric_bike_test_catches_a_wrong_rate(monkeypatch):
     except AssertionError:
         return
     pytest.fail("Your test passed against an electric bike that charges only its $4.50, so it would not catch that mistake.")
+
+
+CAPACITY_TESTS = Path(__file__).parent.parent / "my_tests" / "test_capacity_refusal.py"
+
+
+class WorkingStation:
+    def __init__(self, name, capacity):
+        self.name = name
+        self.capacity = capacity
+        self.bikes = []
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, value):
+        if value < 1:
+            raise ValueError(f"Capacity must be at least 1, not {value}.")
+        self._capacity = value
+
+    def dock(self, bike):
+        self.bikes.append(bike)
+
+    def free_docks(self):
+        return self.capacity - len(self.bikes)
+
+
+class StationWithoutTheRule(WorkingStation):
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, value):
+        self._capacity = value
+
+
+class StationThatStoresBeforeRefusing(WorkingStation):
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, value):
+        self._capacity = value
+        if value < 1:
+            raise ValueError(f"Capacity must be at least 1, not {value}.")
+
+
+def your_capacity_test(name, station_class, monkeypatch):
+    """One of the fellow's capacity tests, set to run against the given station class.
+
+    Their file imports Station from from_scratch. Replacing that name in the
+    loaded file grades the test itself, whatever state their own Station is in.
+    """
+    spec = importlib.util.spec_from_file_location("your_capacity_tests", CAPACITY_TESTS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "Station", station_class)
+    test = getattr(module, name, None)
+    assert test is not None, f"Keep the name {name} for your test in {CAPACITY_TESTS.name}."
+    return test
+
+
+def test_your_refusal_test_catches_a_station_without_the_rule(monkeypatch):
+    """Your tests - the refusal test passes on a working station and fails on one that accepts any capacity"""
+    name = "test_a_capacity_below_one_is_refused"
+
+    your_capacity_test(name, WorkingStation, monkeypatch)()
+
+    broken_test = your_capacity_test(name, StationWithoutTheRule, monkeypatch)
+    # pytest.raises reports a missing error with its own exception, not AssertionError.
+    try:
+        broken_test()
+    except (AssertionError, pytest.fail.Exception):
+        return
+    pytest.fail("Your test passed against a station that accepts a capacity of 0, so it would not catch a missing rule.")
+
+
+def test_your_unchanged_value_test_catches_a_setter_that_stores_first(monkeypatch):
+    """Your tests - the unchanged-value test passes on a working station and fails when the setter stores before it raises"""
+    name = "test_a_refused_capacity_leaves_the_stored_value_unchanged"
+
+    your_capacity_test(name, WorkingStation, monkeypatch)()
+
+    broken_test = your_capacity_test(name, StationThatStoresBeforeRefusing, monkeypatch)
+    try:
+        broken_test()
+    except (AssertionError, pytest.fail.Exception):
+        return
+    pytest.fail("Your test passed against a station whose setter stores the value before raising, so it would not catch a refusal that leaves the bad value behind.")
