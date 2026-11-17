@@ -361,6 +361,19 @@ work, where each of your tests must pass, and once against a bike whose
 that still passes when the price is wrong would not catch the mistake it is
 there to catch.
 
+<details>
+<summary><strong>Hint: how to think about a test</strong></summary>
+
+A test makes one object, calls one method, and asserts the value you expect. Work the expected value out by hand before you write the assert: a classic bike charges the `3.00` base plus `1.00`. Then ask what inputs could change the answer:
+
+- **Below, at, and above a limit.** A rule with a cut-off, such as "a capacity of at least 1", is tested just below the cut-off (`0`), at it (`1`), and above it (`25`), because a mistake such as `<=` written for `<` only shows up at the cut-off. `hourly_rate()` has no cut-off, so this one applies to the refusals elsewhere in this assignment.
+- **Empty or unusual values.** An empty list, a `0`, or a `True` where you would expect `False`. Should a bike that needs repair, or an electric bike with a `battery_range` of `0`, charge a different rate? If the answer is no, an assert on one of those bikes checks that the rate ignores them.
+- **The mistake the test is there to catch.** Picture a broken `hourly_rate()`: one that forgets the base rate, one that forgets the extra amount, or one that adds the wrong amount. Would your assert fail for each one? If it would still pass, it is not checking the price.
+
+For examples of the shape, open `tests/test_from_scratch.py` and read the tests for `Station` and `Member`. Each one builds an object, does one thing to it, and asserts a single expected result. `test_station_setter_refuses_a_capacity_below_one` and `test_station_keeps_its_old_capacity_after_a_refusal` also show how a test checks a value just past a cut-off. Copy their shape, not their contents: your tests are about the price.
+
+</details>
+
 > Your tests go in `my_tests/` rather than `tests/` because `tests/` is replaced
 > with the assignment's own tests when your work is graded, so anything you
 > write there is lost.
