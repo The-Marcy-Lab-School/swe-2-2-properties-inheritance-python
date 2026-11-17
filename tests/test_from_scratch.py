@@ -1,6 +1,8 @@
 import ast
+import importlib.util
 import inspect
 import textwrap
+from pathlib import Path
 
 
 def attributes_set_on(instance):
@@ -176,10 +178,20 @@ def test_electric_bike_charges_more():
 def test_neither_subclass_writes_the_base_rate_itself():
     """ClassicBike and ElectricBike - both reach the base rate through super()"""
     for cls in (ClassicBike, ElectricBike):
-        source = inspect.getsource(cls.hourly_rate)
-        assert "super()" in source, \
+        # Parsed rather than searched as text, so a comment that mentions
+        # super() or 3.00 neither passes nor fails the check.
+        tree = ast.parse(textwrap.dedent(inspect.getsource(cls.hourly_rate)))
+        calls_super = any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "super"
+            for node in ast.walk(tree)
+        )
+        numbers = {
+            node.value for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and type(node.value) in (int, float)
+        }
+        assert calls_super, \
             f"{cls.__name__}.hourly_rate must call super().hourly_rate() for the base rate."
-        assert "3.0" not in source and "3.00" not in source, \
+        assert 3 not in numbers, \
             f"{cls.__name__}.hourly_rate must not write the base rate itself."
 
 
@@ -221,3 +233,85 @@ def test_ride_refuses_to_have_its_cost_set():
 
     with pytest.raises(AttributeError):
         ride.cost = 99
+
+
+YOUR_TESTS = Path(__file__).parent.parent / "my_tests" / "test_bike_rates.py"
+
+
+class WorkingBike:
+    def __init__(self, serial, station, needs_repair):
+        self.serial = serial
+        self.station = station
+        self.needs_repair = needs_repair
+
+    def hourly_rate(self):
+        return 3.00
+
+
+class WorkingClassicBike(WorkingBike):
+    def hourly_rate(self):
+        return super().hourly_rate() + 1.00
+
+
+class WorkingElectricBike(WorkingBike):
+    def __init__(self, serial, station, needs_repair, battery_range):
+        super().__init__(serial, station, needs_repair)
+        self.battery_range = battery_range
+
+    def hourly_rate(self):
+        return super().hourly_rate() + 4.50
+
+
+class ClassicBikeWithoutItsDollar(WorkingClassicBike):
+    def hourly_rate(self):
+        return WorkingBike.hourly_rate(self)
+
+
+class ElectricBikeThatReplacesTheBase(WorkingElectricBike):
+    def hourly_rate(self):
+        return 4.50
+
+
+def your_test(name, classic_class, electric_class, monkeypatch):
+    """One of the fellow's tests, set to run against the given bike classes.
+
+    Their file imports ClassicBike and ElectricBike from from_scratch.
+    Replacing both names in the loaded file grades the test itself, whatever
+    state their own classes are in.
+    """
+    spec = importlib.util.spec_from_file_location("your_bike_tests", YOUR_TESTS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "ClassicBike", classic_class)
+    monkeypatch.setattr(module, "ElectricBike", electric_class)
+    test = getattr(module, name, None)
+    assert test is not None, f"Keep the name {name} for your test in {YOUR_TESTS.name}."
+    return test
+
+
+def test_your_classic_bike_test_catches_a_wrong_rate(monkeypatch):
+    """Your tests - the classic bike test passes on a working bike and fails when the dollar is not added"""
+    name = "test_a_classic_bike_adds_one_dollar"
+
+    your_test(name, WorkingClassicBike, WorkingElectricBike, monkeypatch)()
+
+    broken_test = your_test(name, ClassicBikeWithoutItsDollar, WorkingElectricBike, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against a classic bike that charges only the base rate, so it would not catch that mistake.")
+
+
+def test_your_electric_bike_test_catches_a_wrong_rate(monkeypatch):
+    """Your tests - the electric bike test passes on a working bike and fails when the base rate is left out"""
+    name = "test_an_electric_bike_adds_four_fifty"
+
+    your_test(name, WorkingClassicBike, WorkingElectricBike, monkeypatch)()
+
+    broken_test = your_test(name, WorkingClassicBike, ElectricBikeThatReplacesTheBase, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against an electric bike that charges only its $4.50, so it would not catch that mistake.")
