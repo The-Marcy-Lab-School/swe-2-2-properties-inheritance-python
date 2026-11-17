@@ -1,6 +1,8 @@
 import ast
+import importlib.util
 import inspect
 import textwrap
+from pathlib import Path
 
 
 def attributes_set_on(instance):
@@ -79,7 +81,7 @@ import pytest
 
 def test_station_reads_capacity_through_a_property():
     """Station - station.capacity reads the stored value without parentheses"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     assert station.capacity == 20
     assert isinstance(type(station).capacity, property), \
@@ -88,7 +90,7 @@ def test_station_reads_capacity_through_a_property():
 
 def test_station_stores_the_capacity_non_publicly():
     """Station - the value lives in _capacity, not in a public capacity attribute"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     assert "_capacity" in attributes_set_on(station), \
         "Store the number in self._capacity so the property is the way in."
@@ -98,7 +100,7 @@ def test_station_stores_the_capacity_non_publicly():
 
 def test_station_setter_accepts_a_valid_capacity():
     """Station - assigning a capacity of 1 or more replaces the stored value"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
     station.capacity = 25
 
     assert station.capacity == 25
@@ -106,7 +108,7 @@ def test_station_setter_accepts_a_valid_capacity():
 
 def test_station_setter_refuses_a_capacity_below_one():
     """Station - assigning 0 or less raises ValueError with a message naming the rule"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     with pytest.raises(ValueError) as refusal:
         station.capacity = 0
@@ -119,7 +121,7 @@ def test_station_setter_refuses_a_capacity_below_one():
 
 def test_station_keeps_its_old_capacity_after_a_refusal():
     """Station - a refused assignment leaves the stored value untouched"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     with pytest.raises(ValueError):
         station.capacity = 0
@@ -127,7 +129,7 @@ def test_station_keeps_its_old_capacity_after_a_refusal():
     assert station.capacity == 20, \
         "Raise before storing, so a refused value never reaches _capacity."
 
-    station.dock(Bike("A1", "Grand Army", False))
+    station.dock(Bike("A1", "Grand Army", needs_repair=False))
     assert station.free_docks() == 19
 
 
@@ -154,7 +156,7 @@ def test_member_does_not_copy_the_limit_onto_each_instance():
 def test_members_hold_their_own_bikes():
     """Member - two members do not share one list of bikes"""
     ana, ben = Member("Ana"), Member("Ben")
-    ana.borrow(Bike("A1", "Grand Army", False))
+    ana.borrow(Bike("A1", "Grand Army", needs_repair=False))
 
     assert len(ana.bikes) == 1
     assert len(ben.bikes) == 0, \
@@ -165,11 +167,11 @@ def test_member_refuses_a_fourth_bike():
     """Member - borrowing at the limit raises ValueError, and can_borrow says so first"""
     ana = Member("Ana")
     for serial in ["A1", "A2", "A3"]:
-        ana.borrow(Bike(serial, "Grand Army", False))
+        ana.borrow(Bike(serial, "Grand Army", needs_repair=False))
 
     assert ana.can_borrow() is False
     with pytest.raises(ValueError):
-        ana.borrow(Bike("A4", "Grand Army", False))
+        ana.borrow(Bike("A4", "Grand Army", needs_repair=False))
     assert len(ana.bikes) == 3, "A refused borrow must not add the bike."
 
 
@@ -181,22 +183,22 @@ def test_both_kinds_are_bikes():
 
 def test_classic_bike_inherits_what_bike_already_does():
     """ClassicBike - the parent stores the three attributes and answers is_rentable"""
-    classic = ClassicBike("A1", "Grand Army", False)
+    classic = ClassicBike("A1", "Grand Army", needs_repair=False)
 
     assert classic.serial == "A1"
     assert classic.station == "Grand Army"
     assert classic.is_rentable() is True
-    assert ClassicBike("B7", "Borough Hall", True).is_rentable() is False
+    assert ClassicBike("B7", "Borough Hall", needs_repair=True).is_rentable() is False
 
 
 def test_classic_bike_charges_a_dollar_over_the_base():
     """ClassicBike - hourly_rate is the base rate plus 1.00"""
-    assert ClassicBike("A1", "Grand Army", False).hourly_rate() == 4.00
+    assert ClassicBike("A1", "Grand Army", needs_repair=False).hourly_rate() == 4.00
 
 
 def test_electric_bike_stores_its_own_attribute_and_the_parents():
     """ElectricBike - super().__init__ stores the three, and battery_range is added"""
-    electric = ElectricBike("E9", "Borough Hall", False, 24)
+    electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 
     assert electric.battery_range == 24
     assert electric.serial == "E9", \
@@ -207,7 +209,7 @@ def test_electric_bike_stores_its_own_attribute_and_the_parents():
 
 def test_electric_bike_charges_more():
     """ElectricBike - hourly_rate is the base rate plus 4.50"""
-    assert ElectricBike("E9", "Borough Hall", False, 24).hourly_rate() == 7.50
+    assert ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24).hourly_rate() == 7.50
 
 
 def test_neither_subclass_writes_the_base_rate_itself():
@@ -227,8 +229,8 @@ import pytest
 
 def test_ride_stores_the_bike_and_the_minutes():
     """Ride - __init__ keeps the bike object itself, not just its serial"""
-    bike = Bike("A1", "Grand Army", False)
-    ride = Ride(bike, 30)
+    bike = Bike("A1", "Grand Army", needs_repair=False)
+    ride = Ride(bike, minutes=30)
 
     assert ride.bike is bike, "Store the Bike object, so the ride can ask it for its rate."
     assert ride.minutes == 30
@@ -236,7 +238,7 @@ def test_ride_stores_the_bike_and_the_minutes():
 
 def test_ride_works_out_its_cost():
     """Ride - cost is the bike's hourly rate over the minutes, read without parentheses"""
-    ride = Ride(Bike("A1", "Grand Army", False), 30)
+    ride = Ride(Bike("A1", "Grand Army", needs_repair=False), minutes=30)
 
     assert ride.cost == 1.5
     assert isinstance(type(ride).cost, property), \
@@ -245,7 +247,7 @@ def test_ride_works_out_its_cost():
 
 def test_ride_never_stores_the_cost():
     """Ride - correcting the minutes changes the cost"""
-    ride = Ride(Bike("A1", "Grand Army", False), 30)
+    ride = Ride(Bike("A1", "Grand Army", needs_repair=False), minutes=30)
     ride.minutes = 60
 
     assert ride.cost == 3.0, "Work the cost out when asked rather than storing it."
@@ -255,7 +257,89 @@ def test_ride_never_stores_the_cost():
 
 def test_ride_refuses_to_have_its_cost_set():
     """Ride - assigning to cost raises AttributeError, because there is no setter"""
-    ride = Ride(Bike("A1", "Grand Army", False), 30)
+    ride = Ride(Bike("A1", "Grand Army", needs_repair=False), minutes=30)
 
     with pytest.raises(AttributeError):
         ride.cost = 99
+
+
+YOUR_TESTS = Path(__file__).parent.parent / "my_tests" / "test_bike_rates.py"
+
+
+class WorkingBike:
+    def __init__(self, serial, station, needs_repair):
+        self.serial = serial
+        self.station = station
+        self.needs_repair = needs_repair
+
+    def hourly_rate(self):
+        return 3.00
+
+
+class WorkingClassicBike(WorkingBike):
+    def hourly_rate(self):
+        return super().hourly_rate() + 1.00
+
+
+class WorkingElectricBike(WorkingBike):
+    def __init__(self, serial, station, needs_repair, battery_range):
+        super().__init__(serial, station, needs_repair)
+        self.battery_range = battery_range
+
+    def hourly_rate(self):
+        return super().hourly_rate() + 4.50
+
+
+class ClassicBikeWithoutItsDollar(WorkingClassicBike):
+    def hourly_rate(self):
+        return WorkingBike.hourly_rate(self)
+
+
+class ElectricBikeThatReplacesTheBase(WorkingElectricBike):
+    def hourly_rate(self):
+        return 4.50
+
+
+def your_test(name, classic_class, electric_class, monkeypatch):
+    """One of the fellow's tests, set to run against the given bike classes.
+
+    Their file imports ClassicBike and ElectricBike from from_scratch.
+    Replacing both names in the loaded file grades the test itself, whatever
+    state their own classes are in.
+    """
+    spec = importlib.util.spec_from_file_location("your_bike_tests", YOUR_TESTS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "ClassicBike", classic_class)
+    monkeypatch.setattr(module, "ElectricBike", electric_class)
+    test = getattr(module, name, None)
+    assert test is not None, f"Keep the name {name} for your test in {YOUR_TESTS.name}."
+    return test
+
+
+def test_your_classic_bike_test_catches_a_wrong_rate(monkeypatch):
+    """Your tests - the classic bike test passes on a working bike and fails when the dollar is not added"""
+    name = "test_a_classic_bike_adds_one_dollar"
+
+    your_test(name, WorkingClassicBike, WorkingElectricBike, monkeypatch)()
+
+    broken_test = your_test(name, ClassicBikeWithoutItsDollar, WorkingElectricBike, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against a classic bike that charges only the base rate, so it would not catch that mistake.")
+
+
+def test_your_electric_bike_test_catches_a_wrong_rate(monkeypatch):
+    """Your tests - the electric bike test passes on a working bike and fails when the base rate is left out"""
+    name = "test_an_electric_bike_adds_four_fifty"
+
+    your_test(name, WorkingClassicBike, WorkingElectricBike, monkeypatch)()
+
+    broken_test = your_test(name, WorkingClassicBike, ElectricBikeThatReplacesTheBase, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against an electric bike that charges only its $4.50, so it would not catch that mistake.")
