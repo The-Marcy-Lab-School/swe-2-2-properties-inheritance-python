@@ -79,7 +79,7 @@ import pytest
 
 def test_setting_a_capacity_does_not_recurse():
     """Station.capacity - assigning a valid capacity stores it instead of recursing"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
     station.capacity = 25
 
     assert station.capacity == 25
@@ -87,7 +87,7 @@ def test_setting_a_capacity_does_not_recurse():
 
 def test_the_setter_still_refuses_a_bad_value():
     """Station.capacity - the rule was correct and must stay correct"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     with pytest.raises(ValueError):
         station.capacity = 0
@@ -95,7 +95,7 @@ def test_the_setter_still_refuses_a_bad_value():
 
 def test_a_refused_assignment_changes_nothing():
     """Station.capacity - the stored value survives a refusal"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     with pytest.raises(ValueError):
         station.capacity = -1
@@ -105,7 +105,7 @@ def test_a_refused_assignment_changes_nothing():
 
 def test_the_value_still_lives_in_the_non_public_attribute():
     """Station.capacity - the fix stores to _capacity, it does not remove the property"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
     station.capacity = 30
 
     assert "_capacity" in attributes_set_on(station), \
@@ -116,7 +116,7 @@ def test_the_value_still_lives_in_the_non_public_attribute():
 
 def test_electric_bike_has_the_attributes_its_parent_stores():
     """ElectricBike - super().__init__ runs, so the three attributes are there"""
-    electric = ElectricBike("E9", "Borough Hall", False, 24)
+    electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 
     assert electric.serial == "E9", \
         "Call super().__init__(serial, station, needs_repair) in ElectricBike.__init__."
@@ -126,18 +126,18 @@ def test_electric_bike_has_the_attributes_its_parent_stores():
 
 def test_electric_bike_keeps_its_own_attribute():
     """ElectricBike - battery_range is still stored by the subclass"""
-    assert ElectricBike("E9", "Borough Hall", False, 24).battery_range == 24
+    assert ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24).battery_range == 24
 
 
 def test_electric_bike_can_use_its_inherited_method():
     """ElectricBike - is_rentable needs needs_repair to have been stored"""
-    assert ElectricBike("E9", "Borough Hall", False, 24).is_rentable() is True
-    assert ElectricBike("E1", "Grand Army", True, 12).is_rentable() is False
+    assert ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24).is_rentable() is True
+    assert ElectricBike("E1", "Grand Army", needs_repair=True, battery_range=12).is_rentable() is False
 
 
 def test_the_rate_was_left_alone():
     """ElectricBike - hourly_rate already worked and still does"""
-    electric = ElectricBike("E9", "Borough Hall", False, 24)
+    electric = ElectricBike("E9", "Borough Hall", needs_repair=False, battery_range=24)
 
     assert isinstance(electric, Bike)
     assert electric.hourly_rate() == 7.50

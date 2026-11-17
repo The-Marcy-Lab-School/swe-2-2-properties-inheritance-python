@@ -75,7 +75,7 @@ TEST_SUITE_NAME = "Modify Tests"
 
 def test_station_stores_the_capacity_non_publicly():
     """Station.capacity - the number moved to _capacity"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     assert "_capacity" in attributes_set_on(station), \
         "Assign to self._capacity in __init__."
@@ -85,7 +85,7 @@ def test_station_stores_the_capacity_non_publicly():
 
 def test_station_still_answers_for_its_capacity():
     """Station.capacity - reading it through the property gives the same number"""
-    station = Station("Grand Army", 20)
+    station = Station("Grand Army", capacity=20)
 
     assert station.capacity == 20
     assert isinstance(type(station).capacity, property), \
@@ -94,7 +94,7 @@ def test_station_still_answers_for_its_capacity():
 
 def test_the_three_readers_still_work():
     """Station.capacity - dock, free_docks and __repr__ behave exactly as before"""
-    station = Station("Grand Army", 2)
+    station = Station("Grand Army", capacity=2)
 
     assert station.free_docks() == 2
     station.dock("first")
@@ -116,13 +116,13 @@ import modify
 
 def test_borough_bike_takes_the_borough_as_an_argument():
     """BoroughBike - one class covers every borough"""
-    assert BoroughBike("A1", "Grand Army", False, "Brooklyn").borough == "Brooklyn"
-    assert BoroughBike("M4", "Union Square", False, "Manhattan").borough == "Manhattan"
+    assert BoroughBike("A1", "Grand Army", needs_repair=False, borough="Brooklyn").borough == "Brooklyn"
+    assert BoroughBike("M4", "Union Square", needs_repair=False, borough="Manhattan").borough == "Manhattan"
 
 
 def test_borough_bike_is_still_a_bike():
     """BoroughBike - it inherits, so the parent still stores the three attributes"""
-    bike = BoroughBike("A1", "Grand Army", False, "Brooklyn")
+    bike = BoroughBike("A1", "Grand Army", needs_repair=False, borough="Brooklyn")
 
     assert isinstance(bike, Bike)
     assert bike.serial == "A1", "Call super().__init__(...) so Bike stores the serial."
@@ -153,8 +153,8 @@ def test_the_borough_arrives_as_an_argument():
 
 def test_ride_holds_the_bike_it_was_given():
     """Ride - the bike is stored as an attribute, and it is the same object"""
-    bike = Bike("A1", "Grand Army", False)
-    ride = Ride(bike, 30)
+    bike = Bike("A1", "Grand Army", needs_repair=False)
+    ride = Ride(bike, minutes=30)
 
     assert ride.bike is bike, "Store the Bike object itself: self.bike = bike."
     assert ride.minutes == 30
@@ -162,8 +162,8 @@ def test_ride_holds_the_bike_it_was_given():
 
 def test_a_ride_is_not_a_bike():
     """Ride - it no longer inherits from Bike"""
-    bike = Bike("A1", "Grand Army", False)
-    ride = Ride(bike, 30)
+    bike = Bike("A1", "Grand Army", needs_repair=False)
+    ride = Ride(bike, minutes=30)
 
     assert not isinstance(ride, Bike), \
         "A ride has a bike, so Ride must not inherit from Bike."
@@ -173,15 +173,15 @@ def test_a_ride_is_not_a_bike():
 
 def test_ride_asks_its_bike_for_the_rate():
     """Ride - rate reaches through to the bike it holds"""
-    ride = Ride(Bike("A1", "Grand Army", False), 30)
+    ride = Ride(Bike("A1", "Grand Army", needs_repair=False), minutes=30)
 
     assert ride.rate() == 3.00
 
 
 def test_two_rides_can_share_one_bike():
     """Ride - the same bike taken out twice is one object, held by both rides"""
-    bike = Bike("A1", "Grand Army", False)
-    morning, evening = Ride(bike, 30), Ride(bike, 45)
+    bike = Bike("A1", "Grand Army", needs_repair=False)
+    morning, evening = Ride(bike, minutes=30), Ride(bike, minutes=45)
 
     assert morning.bike is evening.bike
     assert morning.minutes != evening.minutes
